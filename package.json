@@ -1,0 +1,24 @@
+{
+  "name": "capture",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "chrome": "/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --remote-debugging-port=9222",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "capture": "node capture.js && npm run xml",
+    "start": "node-dev map-server-production.js",
+    "xml": "xmllint map-template.xml --xinclude | sed -E \"s/xmlns:[^ >]+//g\" | sed -E \"s/<Include >//g\" | sed -E \"s/<.Include>//g\" > map.xml",
+    "deploy": "./deploy.sh",
+    "restart": "forever restart map-server-production.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chrome-remote-interface": "^0.25.7",
+    "mapnik": "^3.7.1",
+    "node-fetch": "^2.2.0",
+    "simple-headless-chrome": "^4.3.10",
+    "sleep-promise": "^8.0.1"
+  }
+}

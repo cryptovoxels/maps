@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Map xmlns:xi="http://www.w3.org/2001/XInclude" srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over" background-color="white">
+
+    <Style name="property-names">
+        <Rule>
+          <TextSymbolizer 
+            face-name="Source Code Variable Roman" 
+            fill="#333333" 
+            halo-fill="#ffffff" 
+            halo-radius="2" 
+            wrap-width="30"
+            placement="center" 
+            size="12" 
+            vertical-alignment="middle">[name]</TextSymbolizer>
+        </Rule>
+    </Style>
+
+    <Style name="style">
+        <Rule>
+            <RasterSymbolizer scaling="bilinear"/>
+        </Rule>
+    </Style>
+
+    <Style name="property-border">
+      <Rule>
+        <LineSymbolizer stroke="#aaaaaa" stroke-width="2.0" stroke-linecap="round" />
+      </Rule>
+    </Style>
+
+    <Style name="property-addresses">
+        <Rule>
+          <TextSymbolizer face-name="Source Code Variable Roman" fill="#555555" halo-fill="#ffffff" halo-radius="2" placement="interior" repeat-distance="512" size="16" vertical-alignment="middle">[address]</TextSymbolizer>
+        </Rule>
+    </Style>
+
+    <Style name="street-border">
+      <Rule>
+        <MaxScaleDenominator>560000</MaxScaleDenominator>
+        <MinScaleDenominator>1100</MinScaleDenominator>
+        <LineSymbolizer stroke="#666666" stroke-width="12.0" stroke-linecap="round"/>
+      </Rule>
+    </Style>
+
+    <Style name="street-style">
+      <Rule>
+          <LineSymbolizer stroke="#666666" stroke-width="2.0" stroke-linecap="round"/>
+      </Rule>
+      <Rule>
+          <MaxScaleDenominator>560000</MaxScaleDenominator>
+          <MinScaleDenominator>1100</MinScaleDenominator>
+          <LineSymbolizer stroke="#e3e3e3" stroke-width="10.0" stroke-linecap="round"/>
+      </Rule>
+    </Style>
+
+    <Style name="street-names">
+        <Rule>
+          <TextSymbolizer face-name="Source Code Variable Roman" fill="#555555" halo-fill="#ffffff" halo-radius="2" placement="line" repeat-distance="512" size="16" vertical-alignment="middle">[name]</TextSymbolizer>
+        </Rule>
+    </Style>
+
+    <Style name="suburb-names">
+        <Rule>
+          <TextSymbolizer 
+            face-name="Source Code Variable Roman" 
+            fill="#333333" 
+            halo-fill="#ffffff" 
+            halo-radius="4" 
+            wrap-width="80"
+            allow-overlap="true"
+            placement="center" 
+            size="24" 
+            vertical-alignment="middle">[name]</TextSymbolizer>
+        </Rule>
+    </Style>
+
+    <xi:include href="map-tiles.xml" />
+
+    <Layer name="properties" status="on" srs="+init=epsg:4326">
+        <StyleName>property-border</StyleName>
+        <Datasource>
+          <Parameter name="srid">4326</Parameter>
+          <xi:include href="db-connection.xml" />
+          <Parameter name="table">
+            (select * from properties where visible = true) as properties
+          </Parameter>
+          <Parameter name="estimate_extent">true</Parameter>
+        </Datasource>
+    </Layer>
+
+    <Layer name="streets" status="on" srs="+init=epsg:4326">
+        <StyleName>street-border</StyleName>
+        <StyleName>street-style</StyleName>
+        <StyleName>street-names</StyleName>
+        <Datasource>
+          <Parameter name="srid">4326</Parameter>
+          <xi:include href="db-connection.xml" />
+          <Parameter name="table">
+            (select * from streets where visible = true) as streets
+          </Parameter>
+          <Parameter name="estimate_extent">true</Parameter>
+        </Datasource>
+    </Layer>
+
+    <Layer name="property-names" status="on" srs="+init=epsg:4326">
+        <StyleName>property-names</StyleName>
+        <Datasource>
+          <Parameter name="srid">4326</Parameter>
+          <xi:include href="db-connection.xml" />
+          <Parameter name="table">
+            (select * from properties where name is not null) as properties
+          </Parameter>
+          <Parameter name="estimate_extent">true</Parameter>
+        </Datasource>
+    </Layer>
+
+    <Layer name="suburb-names" status="on" srs="+init=epsg:4326">
+        <StyleName>suburb-names</StyleName>
+        <Datasource>
+          <Parameter name="srid">4326</Parameter>
+          <xi:include href="db-connection.xml" />
+          <Parameter name="table">
+            (select * from suburbs) as suburbs
+          </Parameter>
+          <Parameter name="estimate_extent">true</Parameter>
+        </Datasource>
+    </Layer>
+
+</Map>
