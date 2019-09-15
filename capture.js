@@ -88,11 +88,11 @@ async function capture (client) {
   const page = await browser.newPage();
 
   page.on("pageerror", function(err) {  
-    console.log("Page error: " + err.toString()); 
+    //console.log("Page error: " + err.toString()); 
   })
 
   page.on("error", function (err) {  
-    console.log("Error: " + err.toString()); 
+    // console.log("Error: " + err.toString()); 
   })
 
   // page.on('console', msg => {
@@ -122,7 +122,9 @@ async function capture (client) {
     let capture = captures.pop()
     let { x, z, x1, y1, x2, y2, parcels } = capture
 
-    console.log(`Capturing ${current} / ${total} - ${x},0,${z}...\n * ${parcels.map(p => p.address).join('\n * ')}`)
+    process.stdout.write(`Capturing ${ (100 / total * current).toFixed(1) }%` + '\033[0G');
+
+    //console.log(`Capturing ${current} / ${total} - ${x},0,${z}...\n * ${parcels.map(p => p.address).join('\n * ')}`)
 
     if (captureEnabled) {
       // Move camera
@@ -159,4 +161,8 @@ async function capture (client) {
   xml += '</Include>'
 
   fs.writeFileSync('./map-tiles.xml', xml)
+
+  console.log('Done');
+  await page.close()
+  await browser.close();
 }
