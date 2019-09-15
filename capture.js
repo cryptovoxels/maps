@@ -95,11 +95,11 @@ async function capture (client) {
     console.log("Error: " + err.toString()); 
   })
 
-  page.on('console', msg => {
-    console.log('PAGE LOG:', msg.text())
-  });
+  // page.on('console', msg => {
+  //   console.log('PAGE LOG:', msg.text())
+  // });
 
-  page.on('requestfailed', err => console.log(err));
+  // page.on('requestfailed', err => console.log(err));
 
   await page.setViewport({
     width: 512,
@@ -107,22 +107,11 @@ async function capture (client) {
   });
 
   await page
-    .goto('http://cryptovoxels.local:9000/play?mode=mapping', { timeout: 20 * 60 * 1000 })
+    .goto('https://www.cryptovoxels.com/play?mode=mapping', { timeout: 20 * 60 * 1000 })
     .catch(e => console.log(e));
 
   console.log('Waiting for scene to load')
   await new Promise(resolve => setTimeout(resolve, 20 * 1000));
-
-  await page.screenshot({ path: './shot.png' })
-
-    // const deviceMetrics = {
-    //   width: 512,
-    //   height: 512,
-    //   deviceScaleFactor: 1,
-    //   mobile: false,
-    //   fitWindow: false
-    // }
-    // await Emulation.setDeviceMetricsOverride(deviceMetrics)
 
   let current = 0
   total = captures.length
