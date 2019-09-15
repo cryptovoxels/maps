@@ -1,4 +1,7 @@
-const CDP = require('chrome-remote-interface')
+require('dotenv').config()
+
+// const CDP = require('chrome-remote-interface')
+const puppeteer = require('puppeteer')
 const fs = require('fs')
 const sleep = require('sleep-promise')
 const fetch = require('node-fetch')
@@ -19,6 +22,14 @@ const yOffset = -5.5 * 0.01
 let captures = []
 let parcels = []
 
+let browser
+
+let args = puppeteer.defaultArgs().filter(arg => arg !== '--disable-gpu');
+args = puppeteer.defaultArgs().filter(arg => arg !== '--headless');
+args = puppeteer.defaultArgs().filter(arg => arg !== '--disable-dev-shm-usage');
+// args.push('--use-gl=desktop');
+args.push('--no-sandbox');
+
 const findParcels = (x, z) => {
   let x1 = x - 8
   let z1 = z - 8
@@ -36,9 +47,9 @@ const findParcels = (x, z) => {
 
 let total = 0
 
-const generateCaptures = () => {
+const generateCaptures = async () => {
   let p = parcels.find(p => p.address === '1 Hash Gateway')
-  console.log(JSON.stringify(p))
+  // console.log(JSON.stringify(p))
 
   for (let x = -d * 2; x < d * 2; x++) {
     for (let z = -d; z < d; z++) {
@@ -61,9 +72,9 @@ const generateCaptures = () => {
 
   console.log(`Capturing ${captures.length} tiles of ${total}...`)
 
-  CDP((client) => {
-    navigateWebsite(client)
-  })
+  browser = await puppeteer.launch({ ignoreDefaultArgs: true, args });
+
+  capture(browser)
 }
 
 fetch('https://www.cryptovoxels.com/grid/parcels')
@@ -73,97 +84,90 @@ fetch('https://www.cryptovoxels.com/grid/parcels')
     generateCaptures()
   })
 
-async function navigateWebsite (client) {
-  const { Console, Log, DOM, Emulation, Network, Page, Runtime } = client
+async function capture (client) {
+  const page = await browser.newPage();
 
-  try {
+  page.on("pageerror", function(err) {  
+    console.log("Page error: " + err.toString()); 
+  })
+
+  page.on("error", function (err) {  
+    console.log("Error: " + err.toString()); 
+  })
+
+  page.on('console', msg => {
+    console.log('PAGE LOG:', msg.text())
+  });
+
+  page.on('requestfailed', err => console.log(err));
+
+  await page.setViewport({
+    width: 512,
+    height: 512
+  });
+
+  await page
+    .goto('http://cryptovoxels.local:9000/play?mode=mapping', { timeout: 20 * 60 * 1000 })
+    .catch(e => console.log(e));
+
+  console.log('Waiting for scene to load')
+  await new Promise(resolve => setTimeout(resolve, 20 * 1000));
+
+  await page.screenshot({ path: './shot.png' })
+
+    // const deviceMetrics = {
+    //   width: 512,
+    //   height: 512,
+    //   deviceScaleFactor: 1,
+    //   mobile: false,
+    //   fitWindow: false
+    // }
+    // await Emulation.setDeviceMetricsOverride(deviceMetrics)
+
+  let current = 0
+  total = captures.length
+
+  while (captures.length > 0) {
+    current++
+
+    let capture = captures.pop()
+    let { x, z, x1, y1, x2, y2, parcels } = capture
+
+    console.log(`Capturing ${current} / ${total} - ${x},0,${z}...\n * ${parcels.map(p => p.address).join('\n * ')}`)
+
     if (captureEnabled) {
-      await Page.enable()
-      await DOM.enable()
-      await Network.enable()
+      // Move camera
+      //   fixme: 7 is a gross hack
+      await page.evaluate(`
+        ortho(new BABYLON.Vector3(${x} * 16, ${z} * 16, 7))
+      `)
 
-      Runtime.exceptionThrown((params) => {
-        console.log('>', params)
+      // Wait for render
+      await sleep(20)
+
+      // Take a screenshot
+      await page.screenshot({
+        path: `./tiles/tile_${x}_0_${z}.png`
       })
-      Log.entryAdded(({entry}) => {
-        console.log(entry)
-      })
-      Console.messageAdded(({entry}) => {
-        console.log(entry)
-      })
-
-      await Page.navigate({url: 'https://www.cryptovoxels.com/play?mode=mapping'})
-      await Page.loadEventFired()
-
-      console.log('Waiting for the world to load...')
-      await sleep(30000)
-
-      console.log('Resuming capture...')
     }
 
-    const deviceMetrics = {
-      width: 512,
-      height: 512,
-      deviceScaleFactor: 1,
-      mobile: false,
-      fitWindow: false
-    }
-    await Emulation.setDeviceMetricsOverride(deviceMetrics)
-
-    let current = 0
-
-    total = captures.length
-
-    while (captures.length > 0) {
-      current++
-
-      let capture = captures.pop()
-      let { x, z, x1, y1, x2, y2, parcels } = capture
-
-      console.log(`Capturing ${current} / ${total} - ${x},0,${z}...\n * ${parcels.map(p => p.address).join('\n * ')}`)
-
-      if (captureEnabled) {
-        // Move camera
-        //   fixme: 7 is a gross hack
-        await Runtime.evaluate({
-          expression: `ortho(new BABYLON.Vector3(${x} * 16, ${z} * 16, 7))`
-        })
-
-        // Wait for render
-        await sleep(50)
-
-        // Take a screenshot
-        const { data } = await Page.captureScreenshot({ timeout: 1000 })
-        fs.writeFileSync(`./tiles/tile_${x}_0_${z}.png`, Buffer.from(data, 'base64'))
-      }
-
-      xml += `
-        <Layer name="world" srs="+init=epsg:4326">
-            <StyleName>style</StyleName>
-            <Datasource>
-                <Parameter name="file">tiles/tile_${x}_0_${z}.png</Parameter>
-                <Parameter name="tile_size">512</Parameter>
-                <Parameter name="type">raster</Parameter>
-                <Parameter name="lox">${x1}</Parameter>
-                <Parameter name="loy">${y1}</Parameter>
-                <Parameter name="hix">${x2}</Parameter>
-                <Parameter name="hiy">${y2}</Parameter>
-            </Datasource>
-        </Layer>
-      `
-    }
-
-    xml += '</Include>'
-
-    fs.writeFileSync('./map-tiles.xml', xml)
-
-    // Close the browser
-    if (captureEnabled) {
-      // await browser.close()
-    }
-
-    process.exit()
-  } catch (err) {
-    console.log('ERROR!', err)
+    xml += `
+      <Layer name="world" srs="+init=epsg:4326">
+          <StyleName>style</StyleName>
+          <Datasource>
+              <Parameter name="file">tiles/tile_${x}_0_${z}.png</Parameter>
+              <Parameter name="tile_size">512</Parameter>
+              <Parameter name="type">raster</Parameter>
+              <Parameter name="lox">${x1}</Parameter>
+              <Parameter name="loy">${y1}</Parameter>
+              <Parameter name="hix">${x2}</Parameter>
+              <Parameter name="hiy">${y2}</Parameter>
+          </Datasource>
+      </Layer>
+    `
   }
+
+  xml += '</Include>'
+
+  fs.writeFileSync('./map-tiles.xml', xml)
 }

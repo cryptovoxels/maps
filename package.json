@@ -16,8 +16,10 @@
   "license": "ISC",
   "dependencies": {
     "chrome-remote-interface": "^0.25.7",
+    "dotenv": "^8.1.0",
     "mapnik": "^3.7.1",
     "node-fetch": "^2.2.0",
+    "puppeteer": "^1.20.0",
     "simple-headless-chrome": "^4.3.10",
     "sleep-promise": "^8.0.1"
   }
