@@ -30,6 +30,8 @@ args = puppeteer.defaultArgs().filter(arg => arg !== '--disable-dev-shm-usage');
 // args.push('--use-gl=desktop');
 args.push('--no-sandbox');
 
+const VERBOSE = process.argv[2] === 'verbose'
+
 const findParcels = (x, z) => {
   let x1 = x - 8
   let z1 = z - 8
@@ -87,19 +89,24 @@ fetch('https://www.cryptovoxels.com/grid/parcels')
 async function capture (client) {
   const page = await browser.newPage();
 
-  page.on("pageerror", function(err) {  
-    //console.log("Page error: " + err.toString()); 
-  })
+  if (VERBOSE) {
+    page.on("pageerror", function(err) {  
+      console.log("Page error: " + err.toString()); 
+    })
 
-  page.on("error", function (err) {  
-    // console.log("Error: " + err.toString()); 
-  })
+    page.on("error", function (err) {  
+      console.log("Error: " + err.toString()); 
+    })  
 
-  // page.on('console', msg => {
-  //   console.log('PAGE LOG:', msg.text())
-  // });
+    page.on('console', msg => {
+      console.log('Console:', msg.text())
+    });
 
-  // page.on('requestfailed', err => console.log(err));
+    page.on('requestfailed', err => {
+      console.log('Request failed:', err)
+    })
+  }
+
 
   await page.setViewport({
     width: 512,
